@@ -5,10 +5,15 @@ with open('labels.json', 'r', encoding='utf-8') as f:
 
 # print(labels_dict)
 
-class_labels = [item['label'] for item in labels_dict.values()]
-class_labels_cn = [item['label_cn'] for item in labels_dict.values()]
-class_labels_id = [int(label_id) for label_id in labels_dict.keys()]
-class_colors_hex = [item['color'] for item in labels_dict.values()]
+class_labels = [item['label'] for item in labels_dict]
+class_labels_cn = [item['label_cn'] for item in labels_dict]
+# class_labels_id = [item['id'] for item in labels_dict]
+
+#
+class_labels_id = [str(i) for i in range(len(labels_dict))]
+#
+
+class_colors_hex = [item['color'] for item in labels_dict]
 class_colors_rgb = [tuple(int(hex_color[i:i+2], 16) / 255.0 for i in (1, 3, 5)) for hex_color in class_colors_hex]
 
 labels_dict_pack = {
@@ -22,13 +27,11 @@ labels_dict_pack = {
 # print(class_labels)
 # print(class_labels_cn)
 # print(class_labels_id)
-# print(class_colors)
+# print(class_colors_hex)
+# print(class_colors_rgb)
 
 ui_groups = {
     'unlabel': [0],
-    'indoor': [1, 2, 3, 4, 5, 6, 7, 8],
-    'outdoor': [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 29],
-    'others': [26, 27, 28],
 }
 
 
@@ -62,5 +65,91 @@ colors_hex = [
 '#808000',
 '#ee82ee',
 '#ffa500',
-'#a52a2a'
+'#a52a2a',
+'#6496f5',
+'#64e6f5',
+'#1e3c96',
+'#0000ff',
+'#6450fa',
+'#501eb4',
+'#0000ff',
+'#ff1e1e',
+'#ff28c8',
+'#963c5a',
+'#ff00ff',
+'#ff96ff',
+'#4b004b',
+'#af004b',
+'#ffc800',
+'#ff7832',
+'#ff9600',
+'#96ffaa',
+'#00af00',
+'#873c00',
+'#96f050',
+'#fff096',
+'#ff0000',
+'#32ffff',
+'#808000',
+'#ee82ee',
+'#ffa500',
+'#a52a2a',
+'#6496f5',
+'#64e6f5',
+'#1e3c96',
+'#0000ff',
+'#6450fa',
+'#501eb4',
+'#0000ff',
+'#ff1e1e',
+'#ff28c8',
+'#963c5a',
+'#ff00ff',
+'#ff96ff',
+'#4b004b',
+'#af004b',
+'#ffc800',
+'#ff7832',
+'#ff9600',
+'#96ffaa',
+'#00af00',
+'#873c00',
+'#96f050',
+'#fff096',
+'#ff0000',
+'#32ffff',
+'#808000',
+'#ee82ee',
+'#ffa500',
+'#a52a2a',
+'#6496f5',
+'#64e6f5',
+'#1e3c96',
+'#0000ff',
+'#6450fa',
+'#501eb4',
+'#0000ff',
+'#ff1e1e',
+'#ff28c8',
+'#963c5a',
+'#ff00ff',
+'#ff96ff',
+'#4b004b',
+'#af004b',
+'#ffc800',
+'#ff7832',
+'#ff9600',
+'#96ffaa',
+'#00af00',
+'#873c00',
+'#96f050',
+'#fff096',
+'#ff0000',
+'#32ffff',
+'#808000',
+'#ee82ee',
+'#ffa500',
+'#a52a2a',
 ]
+
+colors_rgb = [tuple(int(hex_color[i:i+2], 16) / 255.0 for i in (1, 3, 5)) for hex_color in colors_hex]
