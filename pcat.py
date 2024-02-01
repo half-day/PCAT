@@ -171,7 +171,11 @@ class MainWindow(QtWidgets.QMainWindow):
         btn_load_label.clicked.connect(self.on_click_load_label)
         sidebar_layout.addWidget(btn_load_label)
         sidebar_layout.addSpacing(20)
-        
+
+        btn_undo = QPushButton('撤销')
+        btn_undo.clicked.connect(self.on_click_undo)
+        sidebar_layout.addWidget(btn_undo)
+        sidebar_layout.addSpacing(20)
         # overwirte
         
         btn_overwirte = QPushButton(self.overwriteModeText[self.overwriteMode])
@@ -316,7 +320,7 @@ class MainWindow(QtWidgets.QMainWindow):
         file_dialog = QFileDialog()
         filepath, _ = file_dialog.getOpenFileName(None, '选择文件')
         _, extension = os.path.splitext(filepath)
-        if extension in ['.bin']:
+        if extension in ['.npy']:
             worker = Worker(self.viewer.load_data, filepath)
             worker.signals.result.connect(self.update_data_model)
             self.threadpool.start(worker)
@@ -339,6 +343,11 @@ class MainWindow(QtWidgets.QMainWindow):
         if extension in ['.bin']:
             worker = Worker(self.viewer.save_labels, filepath)
             self.threadpool.start(worker)
+
+    def on_click_undo(self):
+        worker = Worker(self.viewer.undo)
+        worker.signals.result.connect(self.update_data_model)
+        self.threadpool.start(worker)
 
     def on_click_toggle_overwrite(self):
         btn = self.sender()
