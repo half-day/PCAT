@@ -132,6 +132,11 @@ class AnnotateViewerHelpler:
         if len(self.cur_labels_stack) > 1:
             print(self.cur_labels_stack)
             self.cur_labels_stack.pop()
+
+            attr_id = self.viewer.get('curr_attribute_id')
+            mask = self.focus_stack[-1]
+            self.viewer.attributes(self.colors[mask], self.cur_labels_stack[-1][mask])
+            self.viewer.set(curr_attribute_id=attr_id[0], selected=[])
             return self.get_labels_info()
         else:
             print('no undo')
@@ -179,8 +184,14 @@ class AnnotateViewerHelpler:
             label = 0 if label is None else self.cur_labels_stack[-1].max() + 1
         
         if overwrite or int(label) == 0:
-            self.cur_labels_stack.append(copy.deepcopy(self.cur_labels_stack[-1]))
-            self.cur_labels_stack[-1][mask[selected]] = int(label)
+            if len(self.cur_labels_stack) < 4:
+                self.cur_labels_stack.append(copy.deepcopy(self.cur_labels_stack[-1]))
+                self.cur_labels_stack[-1][mask[selected]] = int(label)
+            else:
+                #print('overstack')
+                del self.cur_labels_stack[0]
+                self.cur_labels_stack.append(copy.deepcopy(self.cur_labels_stack[-1]))
+                self.cur_labels_stack[-1][mask[selected]] = int(label)
         else:
             cur_region_mask = mask[selected]
             cur_region_change_mask = np.where(self.cur_labels_stack[-1][cur_region_mask] == 0)
