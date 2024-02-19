@@ -3,7 +3,7 @@ from math import pi
 import numpy as np
 import file_utils
 import pptk
-
+from labels import colors_rgb
 
 class AnnotateViewer(pptk.viewer):
     def __init__(self, port):
@@ -139,7 +139,7 @@ class AnnotateViewerHelpler:
             self.viewer.set(curr_attribute_id=attr_id[0], selected=[])
             return self.get_labels_info()
         else:
-            print('no undo')
+            # print('no undo')
             return
 
 
@@ -168,6 +168,7 @@ class AnnotateViewerHelpler:
         self.viewer.clear()
         self.viewer.reset()
         self.viewer.load(points, colors, cur_labels, color_map=self.cur_color_map, scale=self.cur_scale)
+        # print(self.cur_color_map)
         # set_perspective(p)
         return self.get_labels_info()
     
@@ -182,13 +183,17 @@ class AnnotateViewerHelpler:
             label = int(label)
         else:
             label = 0 if label is None else self.cur_labels_stack[-1].max() + 1
+            if label > len(colors_rgb) - 1:
+                # print('over')
+                return
+            # print(label)
         
         if overwrite or int(label) == 0:
             if len(self.cur_labels_stack) < 4:
                 self.cur_labels_stack.append(copy.deepcopy(self.cur_labels_stack[-1]))
                 self.cur_labels_stack[-1][mask[selected]] = int(label)
             else:
-                #print('overstack')
+                # print('over stack')
                 del self.cur_labels_stack[0]
                 self.cur_labels_stack.append(copy.deepcopy(self.cur_labels_stack[-1]))
                 self.cur_labels_stack[-1][mask[selected]] = int(label)

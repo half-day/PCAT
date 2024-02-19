@@ -9,7 +9,7 @@ from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame, QFileDialog, QShortcut
 
 import socket
-from labels import labels_dict_pack
+from labels import labels_dict_pack, colors_rgb
 from worker import Worker
 
 # !note: import pptk on the last
@@ -109,7 +109,8 @@ class MainWindow(QtWidgets.QMainWindow):
         # manage viewer
         self.viewer = AnnotateViewerHelpler(self._viewer_port, self._viewer_hwnd)
         self.viewer.set_sem_color_map(color_map=labels_dict_pack['color_rgb'], scale=[0, len(labels_dict_pack['color_rgb']) - 1])
-        self.viewer.set_ins_color_map(color_map='jet', scale=None)
+        self.viewer.set_ins_color_map(color_map=colors_rgb, scale=[0, len(colors_rgb) - 1])
+        # self.viewer.set_ins_color_map(color_map="jet", scale=None)
     
     def closeProcess(self, kill=True):
         if self._viewer_process:
@@ -383,7 +384,7 @@ class MainWindow(QtWidgets.QMainWindow):
         sem_id = sem_id[0]
         if self.sender().objectName() == 'del':
             sem_id = None
-        print(self.viewer.get_labels_info())
+        # print(self.viewer.get_labels_info())
         worker = Worker(self.viewer.annotate, sem_id, overwrite=self.overwriteMode, atype='ins')
         worker.signals.result.connect(self.update_data_model)
         self.threadpool.start(worker)
