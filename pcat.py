@@ -3,10 +3,10 @@ import sys
 import win32api
 import win32gui
 import win32con
-
+# import pygetwindow as gw
 from PyQt5.QtCore import QProcess, QThreadPool
 from PyQt5 import QtWidgets, QtGui
-from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame, QFileDialog, QShortcut
+from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QCheckBox, QFrame, QFileDialog, QShortcut
 
 import socket
 from labels import labels_dict_pack, colors_rgb
@@ -39,6 +39,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # data
         self.sem_anno_btn = []
         self.ins_anno_btn = []
+        self.lock_checkbox = []
         
         # layout
         # - siderbar
@@ -51,7 +52,7 @@ class MainWindow(QtWidgets.QMainWindow):
         
         # process busy task
         self.threadpool = QThreadPool()
-    
+
     # data model
     def update_data_model(self, info):
         if info is None:
@@ -96,12 +97,19 @@ class MainWindow(QtWidgets.QMainWindow):
         self._viewer_port = int(port[0])
         print('viewer port:', self._viewer_port)
         # pptk viewer hwnd
+
         hwnd = win32gui.FindWindowEx(0, 0, None, "viewer")
         win32gui.ShowWindow(hwnd, win32con.SW_MAXIMIZE)
+
+        # external_window = gw.getWindowsWithTitle("viewer")
+        # external_window = external_window[0]
+        # hwnd = external_window._hWnd
+
         window = QtGui.QWindow.fromWinId(hwnd)
         windowContainer = QtWidgets.QWidget.createWindowContainer(window)
         self._viewer_hwnd = hwnd
         self._viewer_windowContainer = windowContainer
+
         self.layout.addLayout(self.sidebar_layout_sem, 1)
         self.layout.addWidget(self._viewer_windowContainer, 8)
         self.layout.addLayout(self.sidebar_layout_ins, 1)
@@ -121,7 +129,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     # layout
 
-    def create_anno_label_layout(self, clicked_func, anno_type='sem'):
+    def create_anno_label_layout(self, clicked_func, toggleLayerLock_fucx, anno_type='sem'):
         # label
         vlayout = QVBoxLayout()
         if anno_type == 'sem':
@@ -146,8 +154,14 @@ class MainWindow(QtWidgets.QMainWindow):
                 button.setObjectName(str(label_id))
                 button.clicked.connect(clicked_func)
                 self.ins_anno_btn.append(button)
+                checkbox = QCheckBox()
+                checkbox.setObjectName(str(label_id))
+                checkbox.stateChanged.connect(toggleLayerLock_fucx)
+                self.lock_checkbox.append(checkbox)
                 hlayout.addWidget(qlabel)
+                hlayout.addStretch()
                 hlayout.addWidget(button)
+                hlayout.addWidget(checkbox)
                 vlayout.addLayout(hlayout)
             pass
         else:
@@ -194,7 +208,7 @@ class MainWindow(QtWidgets.QMainWindow):
         sidebar_layout.addSpacing(20)
 
         # label
-        sem_label_layout = self.create_anno_label_layout(self.on_click_set_sem_label, anno_type='sem')
+        sem_label_layout = self.create_anno_label_layout(self.on_click_set_sem_label, self.on_click_lock, anno_type='sem')
         sidebar_layout.addLayout(sem_label_layout)
         sidebar_layout.addStretch(1)
         
@@ -228,13 +242,21 @@ class MainWindow(QtWidgets.QMainWindow):
         hlayout.addWidget(btn_del_ins_label)
         sidebar_layout.addLayout(hlayout)
         sidebar_layout.addSpacing(20)
-        
+
+        # ins
         btn_ins_anno = QPushButton(self.ins_AnnoModeText[self.ins_AnnoMode])
         btn_ins_anno.setStyleSheet(f"background-color: {self.ins_AnnoModeColor[self.ins_AnnoMode]}")
         btn_ins_anno.clicked.connect(self.on_click_toggle_ins_anno)
         sidebar_layout.addWidget(btn_ins_anno)
         sidebar_layout.addSpacing(20)
-        
+
+        # # lock
+        # btn_lock = QPushButton(self.lockModeText[self.lockMode])
+        # btn_lock.setStyleSheet(f"background-color: {self.lockModeColor[self.lockMode]}")
+        # btn_lock.clicked.connect(self.on_click_toggle_lock)
+        # sidebar_layout.addWidget(btn_lock)
+        # sidebar_layout.addSpacing(20)
+
         line = QFrame()
         line.setFrameShape(QFrame.HLine)
         line.setFrameShadow(QFrame.Sunken)
@@ -245,7 +267,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # for label_id, label, color in zip(labels_dict_pack['label_id'], labels_dict_pack['label_cn'], labels_dict_pack['color_hex']):
         #     cb_sem_group.addItem(label, label_id)
         # self.cb_sem_group = cb_sem_group
-        ins_label_layout = self.create_anno_label_layout(self.on_click_set_sem_filter_label, anno_type='ins')
+        ins_label_layout = self.create_anno_label_layout(self.on_click_set_sem_filter_label, self.on_click_lock, anno_type='ins')
         sidebar_layout.addLayout(ins_label_layout)
         sidebar_layout.addStretch(1)
         
@@ -372,6 +394,15 @@ class MainWindow(QtWidgets.QMainWindow):
         worker.signals.result.connect(self.update_data_model)
         self.threadpool.start(worker)
 
+    # def on_click_toggle_lock(self):
+    #     btn = self.sender()
+    #     btn: QPushButton
+    #     self.lockMode = not self.lockMode
+    #     btn.setText(self.lockModeText[self.lockMode])
+    #     btn.setStyleSheet(f"background-color: {self.lockModeColor[self.lockMode]}")
+    #     worker = Worker(self.viewer.lock, self.lockMode)
+    #     self.threadpool.start(worker)
+
     def on_click_set_sem_label(self):
         worker = Worker(self.viewer.annotate, self.sender().objectName(), overwrite=self.overwriteMode)
         worker.signals.result.connect(self.update_data_model)
@@ -388,6 +419,20 @@ class MainWindow(QtWidgets.QMainWindow):
         worker = Worker(self.viewer.annotate, sem_id, overwrite=self.overwriteMode, atype='ins')
         worker.signals.result.connect(self.update_data_model)
         self.threadpool.start(worker)
+
+    def on_click_lock(self, state):
+        if state == 2:
+            print(f"Layer {self.sender().objectName()} locked.")
+            worker = Worker(self.viewer.lock, self.sender().objectName())
+            worker.signals.result.connect(self.update_data_model)
+            self.threadpool.start(worker)
+        else:
+            print(f"Layer {self.sender().objectName()} unlocked.")
+            worker = Worker(self.viewer.unlock, self.sender().objectName())
+            worker.signals.result.connect(self.update_data_model)
+            self.threadpool.start(worker)
+
+
 
     def on_click_set_sem_filter_label(self):
         # only one checked

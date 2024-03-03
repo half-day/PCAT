@@ -5,6 +5,7 @@ import file_utils
 import pptk
 from labels import colors_rgb
 
+
 class AnnotateViewer(pptk.viewer):
     def __init__(self, port):
         self._portNumber = port
@@ -29,21 +30,21 @@ class AnnotateViewerHelpler:
             return self.sem_labels_stack
         else:
             return self.ins_labels_stack
-    
+
     @property
     def cur_scale(self):
         if self._anno_mode == 'sem':
             return self._sem_scale
         else:
             return self._ins_scale
-    
+
     @property
     def cur_color_map(self):
         if self._anno_mode == 'sem':
             return self._sem_color_map
         else:
             return self._ins_color_map
-    
+
     def set_anno_mode(self, value):
         self._anno_mode = str(value)
 
@@ -59,12 +60,13 @@ class AnnotateViewerHelpler:
         self._anno_mode = 'sem'
         # focus
         self.focus_stack = [np.arange(points.shape[0])]
+        self.lock_dict = {}
         return
-    
+
     def set_sem_color_map(self, color_map='jet', scale=None):
         self._sem_color_map = color_map
         self._sem_scale = scale
-        
+
     def set_ins_color_map(self, color_map='jet', scale=None):
         self._ins_color_map = color_map
         self._ins_scale = scale
@@ -73,13 +75,14 @@ class AnnotateViewerHelpler:
     #     self.color_map = color_map
     #     self.scale = scale
     #     self.viewer.color_map(color_map, scale)
-    
+
     # pack data
-    
+
     def get_labels_info(self):
         sem_label_points = np.bincount(self.sem_labels_stack[-1])
-        sem_label_points = np.pad(sem_label_points, (0, len(self._sem_color_map) - len(sem_label_points)), 'constant', constant_values=0)
-        
+        sem_label_points = np.pad(sem_label_points, (0, len(self._sem_color_map) - len(sem_label_points)), 'constant',
+                                  constant_values=0)
+
         ins_label_counts = [''] * len(sem_label_points)
         for i in range(len(ins_label_counts)):
             cur_sem_ins = self.ins_labels_stack[-1][self.sem_labels_stack[-1] == i]
@@ -89,11 +92,11 @@ class AnnotateViewerHelpler:
                 ins_label_counts[i] = ''
             else:
                 ins_label_counts[i] = f'{nonzero_cnt} <{unanno_cnt}>'
-        
+
         return sem_label_points, ins_label_counts
-    
+
     # io
-    
+
     def load_data(self, filepath):
         points, colors = file_utils.load_data(filepath)
         self.setup(points, colors)
@@ -101,7 +104,7 @@ class AnnotateViewerHelpler:
         self.viewer.reset()
         self.viewer.load(points, colors, self.cur_labels_stack[-1], color_map=self.cur_color_map, scale=self.cur_scale)
         return self.get_labels_info()
-    
+
     def load_labels(self, filepath):
         labels = file_utils.load_label(filepath)
         print('labels load', labels.shape)
@@ -120,12 +123,12 @@ class AnnotateViewerHelpler:
         else:
             print('点云与标签 shape 不一致')
         return self.get_labels_info()
-    
+
     def save_labels(self, filepath):
         labels = np.vstack([self.sem_labels_stack[-1], self.ins_labels_stack[-1]])
         file_utils.save_label(filepath, labels)
         print('labels saved:', labels.shape)
-    
+
     # action
 
     def undo(self):
@@ -142,25 +145,28 @@ class AnnotateViewerHelpler:
             # print('no undo')
             return
 
-
     def set_camera(self, direction):
         if direction == 'front':
             self.viewer.set(theta=0, phi=0)
         elif direction == 'back':
             self.viewer.set(theta=0, phi=pi)
         elif direction == 'top':
-            self.viewer.set(theta=pi/2, phi=0)
+            self.viewer.set(theta=pi / 2, phi=0)
         elif direction == 'bottom':
-            self.viewer.set(theta=-pi/2, phi=0)
+            self.viewer.set(theta=-pi / 2, phi=0)
         elif direction == 'left':
-            self.viewer.set(theta=0, phi=-pi/2)
+            self.viewer.set(theta=0, phi=-pi / 2)
         elif direction == 'right':
-            self.viewer.set(theta=0, phi=pi/2)
+            self.viewer.set(theta=0, phi=pi / 2)
         else:
             return
-    
+
     def render(self, mask, label_type='sem'):
         mask = self.focus_stack[-1] if mask is None else mask
+        for value in self.lock_dict.values():
+            mask = np.append(mask, value)
+            mask = np.unique(mask)
+            mask = np.sort(mask)
         points = self.points[mask]
         colors = self.colors[mask]
         cur_labels = self.cur_labels_stack[-1][mask]
@@ -171,23 +177,26 @@ class AnnotateViewerHelpler:
         # print(self.cur_color_map)
         # set_perspective(p)
         return self.get_labels_info()
-    
+
     def annotate(self, label: str, overwrite=True, atype='sem'):
         selected = self.viewer.get('selected')
         if len(selected) == 0:
             return
 
         mask = self.focus_stack[-1]
-        
+
         if atype == 'sem':
             label = int(label)
+            if label in self.lock_dict.keys():
+                print(f'label {label} locked')
+                return
         else:
             label = 0 if label is None else self.cur_labels_stack[-1].max() + 1
             if label > len(colors_rgb) - 1:
                 # print('over')
                 return
             # print(label)
-        
+
         if overwrite or int(label) == 0:
             if len(self.cur_labels_stack) < 4:
                 self.cur_labels_stack.append(copy.deepcopy(self.cur_labels_stack[-1]))
@@ -201,19 +210,19 @@ class AnnotateViewerHelpler:
             cur_region_mask = mask[selected]
             cur_region_change_mask = np.where(self.cur_labels_stack[-1][cur_region_mask] == 0)
             self.cur_labels_stack[-1][cur_region_mask[cur_region_change_mask]] = int(label)
-        
+
         attr_id = self.viewer.get('curr_attribute_id')
         self.viewer.attributes(self.colors[mask], self.cur_labels_stack[-1][mask])
         self.viewer.set(curr_attribute_id=attr_id[0], selected=[])
         return self.get_labels_info()
-    
+
     # def annotate_ins(self, sem_label: str, overwrite=True):
     #     selected = self.viewer.get('selected')
     #     if len(selected) == 0:
     #         return
-        
+
     #     mask = self.focus_stack[-1]
-        
+
     #     if overwrite or int(label) == 0:
     #         self.sem_labels[mask[selected]] = int(label)
     #     else:
@@ -221,12 +230,44 @@ class AnnotateViewerHelpler:
     #         cur_region_mask = mask[selected]
     #         cur_region_change_mask = np.where(self.sem_labels[cur_region_mask] == 0)
     #         self.sem_labels[cur_region_mask[cur_region_change_mask]] = int(label)
-        
+
     #     attr_id = self.viewer.get('curr_attribute_id')
     #     self.viewer.attributes(self.colors[mask], self.sem_labels[mask])
     #     self.viewer.set(curr_attribute_id=attr_id[0], selected=[])
     #     pass
-    
+
+    # # lock
+    # def lock(self, lockMode):
+    #     if lockMode is True:
+    #         selected = self.viewer.get('selected')
+    #         print(np.sort(selected))
+    #         if len(selected) != 0:
+    #             print(self.lock_stack[-1])
+    #             self.lock_stack.append(self.lock_stack[-1][selected])
+    #             print(self.lock_stack[-1])
+    #         else:
+    #             return
+    #     else:
+    #         if len(self.lock_stack) > 1:
+    #             self.lock_stack.pop()
+    #         else:
+    #             return
+    #
+    #     cur_focus_mask = self.focus_stack[-1]
+    #     print(cur_focus_mask)
+    #     self.render(cur_focus_mask)
+
+    def lock(self, label: str):
+        lock_index = np.array(np.where(self.cur_labels_stack[-1]==int(label)))
+        self.lock_dict[int(label)]=lock_index
+        cur_focus_mask = self.focus_stack[-1]
+        self.render(cur_focus_mask)
+
+    def unlock(self, label: str):
+        del self.lock_dict[int(label)]
+        cur_focus_mask = self.focus_stack[-1]
+        self.render(cur_focus_mask)
+
     def focus(self, ftype):
         # select
         if ftype == 'forward':
@@ -248,21 +289,21 @@ class AnnotateViewerHelpler:
             selected = self.sem_labels_stack[-1] == filter_id
             self.focus_stack = self.focus_stack[:1]
             self.focus_stack.append(self.focus_stack[-1][selected])
-        
+
         cur_focus_mask = self.focus_stack[-1]
         self.render(cur_focus_mask)
-    
+
     # point size
 
     def set_point_size_range(self, point_size_range_list):
         self._point_size_idx = 0
-        self._point_size_range = list(sorted(point_size_range_list))        
-    
+        self._point_size_range = list(sorted(point_size_range_list))
+
     def increase_point_size(self):
         if self._point_size_idx < len(self._point_size_range) - 1:
             self._point_size_idx += 1
             self.viewer.set(point_size=self._point_size_range[self._point_size_idx])
-    
+
     def decrease_point_size(self):
         if self._point_size_idx > 0:
             self._point_size_idx -= 1
