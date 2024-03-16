@@ -60,7 +60,8 @@ class AnnotateViewerHelpler:
         self._anno_mode = 'sem'
         # focus
         self.focus_stack = [np.arange(points.shape[0])]
-        self.lock_dict = {}
+        self.lock_laebl = np.array([])
+        self.focus_label = np.array([])
         return
 
     def set_sem_color_map(self, color_map='jet', scale=None):
@@ -163,10 +164,10 @@ class AnnotateViewerHelpler:
 
     def render(self, mask, label_type='sem'):
         mask = self.focus_stack[-1] if mask is None else mask
-        for value in self.lock_dict.values():
-            mask = np.append(mask, value)
-            mask = np.unique(mask)
-            mask = np.sort(mask)
+        # for value in self.lock_dict.values():
+        #     mask = np.append(mask, value)
+        #     mask = np.unique(mask)
+        #     mask = np.sort(mask)
         points = self.points[mask]
         colors = self.colors[mask]
         cur_labels = self.cur_labels_stack[-1][mask]
@@ -187,9 +188,6 @@ class AnnotateViewerHelpler:
 
         if atype == 'sem':
             label = int(label)
-            if label in self.lock_dict.keys():
-                print(f'label {label} locked')
-                return
         else:
             label = 0 if label is None else self.cur_labels_stack[-1].max() + 1
             if label > len(colors_rgb) - 1:
@@ -197,18 +195,31 @@ class AnnotateViewerHelpler:
                 return
             # print(label)
 
-        if overwrite or int(label) == 0:
-            if len(self.cur_labels_stack) < 4:
-                self.cur_labels_stack.append(copy.deepcopy(self.cur_labels_stack[-1]))
-                self.cur_labels_stack[-1][mask[selected]] = int(label)
-            else:
-                # print('over stack')
-                del self.cur_labels_stack[0]
-                self.cur_labels_stack.append(copy.deepcopy(self.cur_labels_stack[-1]))
-                self.cur_labels_stack[-1][mask[selected]] = int(label)
+        # if overwrite or int(label) == 0:
+        #     if len(self.cur_labels_stack) < 4:
+        #         self.cur_labels_stack.append(copy.deepcopy(self.cur_labels_stack[-1]))
+        #         self.cur_labels_stack[-1][mask[selected]] = int(label)
+        #     else:
+        #         # print('over stack')
+        #         del self.cur_labels_stack[0]
+        #         self.cur_labels_stack.append(copy.deepcopy(self.cur_labels_stack[-1]))
+        #         self.cur_labels_stack[-1][mask[selected]] = int(label)
+        # else:
+        #     cur_region_mask = mask[selected]
+        #     print(cur_region_mask)
+        #     cur_region_change_mask = np.where(self.cur_labels_stack[-1][cur_region_mask] == 0)
+        #     print(cur_region_change_mask)
+        #     self.cur_labels_stack[-1][cur_region_mask[cur_region_change_mask]] = int(label)
+        if len(self.cur_labels_stack) < 4:
+            self.cur_labels_stack.append(copy.deepcopy(self.cur_labels_stack[-1]))
         else:
-            cur_region_mask = mask[selected]
-            cur_region_change_mask = np.where(self.cur_labels_stack[-1][cur_region_mask] == 0)
+            del self.cur_labels_stack[0]
+            self.cur_labels_stack.append(copy.deepcopy(self.cur_labels_stack[-1]))
+        if len(self.lock_laebl) == 0:
+            self.cur_labels_stack[-1][mask[selected]] = int(label)
+        else:
+            cur_region_mask = np.array(mask[selected])
+            cur_region_change_mask = np.where(~np.isin(self.cur_labels_stack[-1][cur_region_mask], self.lock_laebl))
             self.cur_labels_stack[-1][cur_region_mask[cur_region_change_mask]] = int(label)
 
         attr_id = self.viewer.get('curr_attribute_id')
@@ -258,15 +269,15 @@ class AnnotateViewerHelpler:
     #     self.render(cur_focus_mask)
 
     def lock(self, label: str):
-        lock_index = np.array(np.where(self.cur_labels_stack[-1]==int(label)))
-        self.lock_dict[int(label)]=lock_index
-        cur_focus_mask = self.focus_stack[-1]
-        self.render(cur_focus_mask)
+        self.lock_laebl = np.append(self.lock_laebl, int(label))
+        # cur_focus_mask = self.focus_stack[-1]
+        # self.render(cur_focus_mask)
 
     def unlock(self, label: str):
-        del self.lock_dict[int(label)]
-        cur_focus_mask = self.focus_stack[-1]
-        self.render(cur_focus_mask)
+        selected = self.lock_laebl != int(label)
+        self.lock_laebl = self.lock_laebl[selected]
+        # cur_focus_mask = self.focus_stack[-1]
+        # self.render(cur_focus_mask)
 
     def focus(self, ftype):
         # select
@@ -277,18 +288,35 @@ class AnnotateViewerHelpler:
             else:
                 return
         elif ftype == 'backward':
-            if len(self.focus_stack) > 1:
+            if len(self.focus_label) > 0:
+                if len(self.focus_stack) > 2:
+                    self.focus_stack.pop()
+                else:
+                    return
+            elif len(self.focus_stack) > 1:
                 self.focus_stack.pop()
             else:
                 return
         # sem label
-        elif ftype is None:
-            self.focus_stack = self.focus_stack[:1]
+        # elif ftype is None:
+        #     self.focus_stack = self.focus_stack[:1]
         else:
             filter_id = int(ftype)
-            selected = self.sem_labels_stack[-1] == filter_id
-            self.focus_stack = self.focus_stack[:1]
-            self.focus_stack.append(self.focus_stack[-1][selected])
+            if filter_id > 0:
+                self.focus_label = np.append(self.focus_label, filter_id)
+            else:
+                filter_id = -filter_id
+                selected = self.focus_label != filter_id
+                self.focus_label = self.focus_label[selected]
+            result = self.sem_labels_stack[-1] == len(self.cur_color_map) + 1
+            for label_id in self.focus_label:
+                selected = self.sem_labels_stack[-1] == label_id
+                result = [x | y for x, y in zip(result, selected)]
+            if len(self.focus_label) > 0:
+                self.focus_stack = self.focus_stack[:1]
+                self.focus_stack.append(self.focus_stack[-1][result])
+            else:
+                self.focus_stack = self.focus_stack[:1]
 
         cur_focus_mask = self.focus_stack[-1]
         self.render(cur_focus_mask)

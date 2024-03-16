@@ -438,15 +438,15 @@ class MainWindow(QtWidgets.QMainWindow):
         # only one checked
         cur_btn = self.sender()
         cur_btn : QPushButton
-        for btn in self.ins_anno_btn:
-            if btn is not self.sender():
-                btn : QPushButton
-                btn.setChecked(True)
+        # for btn in self.ins_anno_btn:
+        #     if btn is not self.sender():
+        #         btn : QPushButton
+        #         btn.setChecked(True)
         
         if cur_btn.isChecked():
-            filter_id = None
+            filter_id = -int(cur_btn.objectName())
         else:
-            filter_id = cur_btn.objectName()
+            filter_id = int(cur_btn.objectName())
         # focus by sem id
         worker = Worker(self.viewer.focus, filter_id)
         self.threadpool.start(worker)
