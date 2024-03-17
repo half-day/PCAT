@@ -165,7 +165,8 @@ class AnnotateViewerHelpler:
     def render(self, mask, label_type='sem'):
         if mask is None:
             self.focus_label = []
-            del self.focus_stack[-1]
+            if len(self.focus_stack) > 1:
+                del self.focus_stack[-1]
             mask = self.focus_stack[-1]
         # for value in self.lock_dict.values():
         #     mask = np.append(mask, value)
