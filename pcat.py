@@ -139,7 +139,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 button = QPushButton(label)
                 button.setObjectName(str(label_id))
                 button.setStyleSheet(f"background-color: {QtGui.QColor(color).name()}")
-                button.clicked.connect(clicked_func)
+                button.clicked.connect(lambda: clicked_func(self.ins_AnnoMode))
                 self.sem_anno_btn.append(button)
                 hlayout.addWidget(qlabel)
                 hlayout.addWidget(button)
@@ -152,7 +152,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 button.setCheckable(True)
                 button.setChecked(True)
                 button.setObjectName(str(label_id))
-                button.clicked.connect(clicked_func)
+                button.clicked.connect(lambda: clicked_func(self.ins_AnnoMode))
                 self.ins_anno_btn.append(button)
                 checkbox = QCheckBox()
                 checkbox.setObjectName(str(label_id))
@@ -432,9 +432,7 @@ class MainWindow(QtWidgets.QMainWindow):
             worker.signals.result.connect(self.update_data_model)
             self.threadpool.start(worker)
 
-
-
-    def on_click_set_sem_filter_label(self):
+    def on_click_set_sem_filter_label(self, ins_Mode):
         # only one checked
         cur_btn = self.sender()
         cur_btn : QPushButton
@@ -442,14 +440,25 @@ class MainWindow(QtWidgets.QMainWindow):
         #     if btn is not self.sender():
         #         btn : QPushButton
         #         btn.setChecked(True)
-        
-        if cur_btn.isChecked():
-            filter_id = -int(cur_btn.objectName())
+        if not ins_Mode:
+            if cur_btn.isChecked():
+                filter_id = -int(cur_btn.objectName())
+            else:
+                filter_id = int(cur_btn.objectName())
+            # focus by sem id
+            worker = Worker(self.viewer.focus, filter_id, 'sem')
+            self.threadpool.start(worker)
         else:
-            filter_id = int(cur_btn.objectName())
-        # focus by sem id
-        worker = Worker(self.viewer.focus, filter_id)
-        self.threadpool.start(worker)
+            for btn in self.ins_anno_btn:
+                if btn is not self.sender():
+                    btn: QPushButton
+                    btn.setChecked(True)
+            if cur_btn.isChecked():
+                filter_id = None
+            else:
+                filter_id = int(cur_btn.objectName())
+            worker = Worker(self.viewer.focus, filter_id, 'ins')
+            self.threadpool.start(worker)
 
     def on_click_focus(self):
         worker = Worker(self.viewer.focus, self.sender().objectName())

@@ -163,7 +163,10 @@ class AnnotateViewerHelpler:
             return
 
     def render(self, mask, label_type='sem'):
-        mask = self.focus_stack[-1] if mask is None else mask
+        if mask is None:
+            self.focus_label = []
+            del self.focus_stack[-1]
+            mask = self.focus_stack[-1]
         # for value in self.lock_dict.values():
         #     mask = np.append(mask, value)
         #     mask = np.unique(mask)
@@ -279,7 +282,7 @@ class AnnotateViewerHelpler:
         # cur_focus_mask = self.focus_stack[-1]
         # self.render(cur_focus_mask)
 
-    def focus(self, ftype):
+    def focus(self, ftype, atype='sem'):
         # select
         if ftype == 'forward':
             selected = self.viewer.get('selected')
@@ -298,25 +301,32 @@ class AnnotateViewerHelpler:
             else:
                 return
         # sem label
-        # elif ftype is None:
-        #     self.focus_stack = self.focus_stack[:1]
+        elif ftype is None:
+            self.focus_stack = self.focus_stack[:1]
+            self.focus_label = []
         else:
-            filter_id = int(ftype)
-            if filter_id > 0:
-                self.focus_label = np.append(self.focus_label, filter_id)
+            if atype == 'sem':
+                filter_id = int(ftype)
+                if filter_id > 0:
+                    self.focus_label = np.append(self.focus_label, filter_id)
+                else:
+                    filter_id = -filter_id
+                    selected = self.focus_label != filter_id
+                    self.focus_label = self.focus_label[selected]
+                result = self.sem_labels_stack[-1] == len(self.cur_color_map) + 1
+                for label_id in self.focus_label:
+                    selected = self.sem_labels_stack[-1] == label_id
+                    result = [x | y for x, y in zip(result, selected)]
+                if len(self.focus_label) > 0:
+                    self.focus_stack = self.focus_stack[:1]
+                    self.focus_stack.append(self.focus_stack[-1][result])
+                else:
+                    self.focus_stack = self.focus_stack[:1]
             else:
-                filter_id = -filter_id
-                selected = self.focus_label != filter_id
-                self.focus_label = self.focus_label[selected]
-            result = self.sem_labels_stack[-1] == len(self.cur_color_map) + 1
-            for label_id in self.focus_label:
-                selected = self.sem_labels_stack[-1] == label_id
-                result = [x | y for x, y in zip(result, selected)]
-            if len(self.focus_label) > 0:
+                filter_id = int(ftype)
+                selected = self.sem_labels_stack[-1] == filter_id
                 self.focus_stack = self.focus_stack[:1]
-                self.focus_stack.append(self.focus_stack[-1][result])
-            else:
-                self.focus_stack = self.focus_stack[:1]
+                self.focus_stack.append(self.focus_stack[-1][selected])
 
         cur_focus_mask = self.focus_stack[-1]
         self.render(cur_focus_mask)
