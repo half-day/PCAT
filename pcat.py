@@ -139,7 +139,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 button = QPushButton(label)
                 button.setObjectName(str(label_id))
                 button.setStyleSheet(f"background-color: {QtGui.QColor(color).name()}")
-                button.clicked.connect(lambda: clicked_func(self.ins_AnnoMode))
+                button.clicked.connect(clicked_func)
                 self.sem_anno_btn.append(button)
                 hlayout.addWidget(qlabel)
                 hlayout.addWidget(button)
