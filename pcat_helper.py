@@ -308,7 +308,13 @@ class AnnotateViewerHelpler:
         else:
             if atype == 'sem':
                 filter_id = int(ftype)
-                if filter_id > 0:
+                if filter_id == 0:
+                    if 0 in self.focus_label:
+                        selected = self.focus_label != filter_id
+                        self.focus_label = self.focus_label[selected]
+                    else:
+                        self.focus_label = np.append(self.focus_label, filter_id)
+                elif filter_id > 0:
                     self.focus_label = np.append(self.focus_label, filter_id)
                 else:
                     filter_id = -filter_id
