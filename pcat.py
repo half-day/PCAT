@@ -53,6 +53,8 @@ class MainWindow(QtWidgets.QMainWindow):
         # process busy task
         self.threadpool = QThreadPool()
 
+        self.workdir = os.getcwd()
+
     # data model
     def update_data_model(self, info):
         if info is None:
@@ -341,30 +343,34 @@ class MainWindow(QtWidgets.QMainWindow):
     
     def on_click_load_file(self):
         file_dialog = QFileDialog()
-        filepath, _ = file_dialog.getOpenFileName(None, '选择文件')
+        filepath, _ = file_dialog.getOpenFileName(None, '选择文件', self.workdir, "点云文件 (*.npy)")
         _, extension = os.path.splitext(filepath)
         if extension in ['.npy']:
             worker = Worker(self.viewer.load_data, filepath)
             worker.signals.result.connect(self.update_data_model)
+            self.workdir = os.path.dirname(filepath)
             self.threadpool.start(worker)
             self.cur_filename = os.path.basename(filepath)
 
     def on_click_load_label(self):
         file_dialog = QFileDialog()
-        filepath, _ = file_dialog.getOpenFileName(None, '选择文件')
+        filepath, _ = file_dialog.getOpenFileName(None, '选择文件', self.workdir, "标签文件 (*.npy)")
         _, extension = os.path.splitext(filepath)
-        if extension in ['.bin']:
+        if extension in ['.npy']:
             worker = Worker(self.viewer.load_labels, filepath)
             worker.signals.result.connect(self.update_data_model)
+            self.workdir = os.path.dirname(filepath)
             self.threadpool.start(worker)
 
     def on_click_save_label(self):
         options = QFileDialog.Options()
         # options |= QFileDialog.DontUseNativeDialog
-        filepath, _ = QFileDialog.getSaveFileName(None, "导出文件", f'{self.cur_filename[:-4]}_labels.bin', "二进制文件 (*.bin)", options=options)
+        filepath, _ = QFileDialog.getSaveFileName(None, "导出文件", os.path.join(self.workdir, f'{self.cur_filename[:-4]}_labels.npy'),
+                                                "标签文件 (*.npy)", options=options)
         _, extension = os.path.splitext(filepath)
-        if extension in ['.bin']:
+        if extension in ['.npy']:
             worker = Worker(self.viewer.save_labels, filepath)
+            self.workdir = os.path.dirname(filepath)
             self.threadpool.start(worker)
 
     def on_click_undo(self):
