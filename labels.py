@@ -5,7 +5,7 @@ import numpy as np
 from typing import Optional
 
 
-def random_rgb_colors(num_colors: int, seed: int = 0) -> 'np.array[num_colors, 3]':
+def random_rgb_colors(num_colors: int, seed: int = 0, reserve_black: bool = False) -> 'np.array[num_colors, 3]':
 
     def hsv_distance(hsv1: 'np.array[3]', hsv2: 'np.array[3]') -> float:
         hsv1 = np.array(hsv1)
@@ -30,6 +30,9 @@ def random_rgb_colors(num_colors: int, seed: int = 0) -> 'np.array[num_colors, 3
     random.seed(seed)
     colors_hsv = []
     pre = np.array([0, 0, 0])
+    if reserve_black:
+        colors_hsv.append(pre)
+        num_colors -= 1
 
     for _ in range(num_colors):
         now = random_hsv()
@@ -76,4 +79,4 @@ ui_groups = {
     'unlabel': [0],
 }
 
-colors_rgb = random_rgb_colors(100, seed=0)
+colors_rgb = random_rgb_colors(3000, seed=0, reserve_black=True)
