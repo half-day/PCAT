@@ -354,9 +354,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def on_click_load_label(self):
         file_dialog = QFileDialog()
-        filepath, _ = file_dialog.getOpenFileName(None, '选择文件', self.workdir, "标签文件 (*.npy)")
+        filepath, _ = file_dialog.getOpenFileName(None, '选择文件', self.workdir, "标签文件 (*.npy, *.bin)")
         _, extension = os.path.splitext(filepath)
-        if extension in ['.npy']:
+        if extension in ['.npy', '.bin']:
             worker = Worker(self.viewer.load_labels, filepath)
             worker.signals.result.connect(self.update_data_model)
             self.workdir = os.path.dirname(filepath)
@@ -366,9 +366,9 @@ class MainWindow(QtWidgets.QMainWindow):
         options = QFileDialog.Options()
         # options |= QFileDialog.DontUseNativeDialog
         filepath, _ = QFileDialog.getSaveFileName(None, "导出文件", os.path.join(self.workdir, f'{self.cur_filename[:-4]}_labels.npy'),
-                                                "标签文件 (*.npy)", options=options)
+                                                "标签文件 (*.npy, *.bin)", options=options)
         _, extension = os.path.splitext(filepath)
-        if extension in ['.npy']:
+        if extension in ['.npy', '.bin']:
             worker = Worker(self.viewer.save_labels, filepath)
             self.workdir = os.path.dirname(filepath)
             self.threadpool.start(worker)
