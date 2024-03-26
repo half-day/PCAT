@@ -6,7 +6,7 @@ import win32con
 # import pygetwindow as gw
 from PyQt5.QtCore import QProcess, QThreadPool
 from PyQt5 import QtWidgets, QtGui
-from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QCheckBox, QFrame, QFileDialog, QShortcut
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QCheckBox, QFrame, QFileDialog, QShortcut
 
 import socket
 from labels import labels_dict_pack, colors_rgb
@@ -15,7 +15,6 @@ from worker import Worker
 # !note: import pptk on the last
 from pcat_helper import AnnotateViewerHelpler
 from pptk.viewer.viewer import _viewer_dir
-
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
@@ -26,6 +25,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setCentralWidget(widget)
         self.widget = widget
         self.layout = layout
+
+        self.sub_window = QWidget()
+        self.sub_window.setWindowTitle('选择点云格式')
+        self.sub_window.setGeometry(600, 600, 400, 300)
 
         # state
         self.overwriteMode = True
@@ -342,11 +345,26 @@ class MainWindow(QtWidgets.QMainWindow):
     # click event
     
     def on_click_load_file(self):
+        layout = QVBoxLayout()
+        btn1 = QPushButton('x y z r g b', self)
+        btn1.clicked.connect(lambda: self.on_click_choose('x y z r g b'))
+        layout.addWidget(btn1)
+        btn2 = QPushButton('x y z r g b sem', self)
+        btn2.clicked.connect(lambda: self.on_click_choose('x y z r g b sem'))
+        layout.addWidget(btn2)
+        btn3 = QPushButton('x y z r g b sem ins', self)
+        btn3.clicked.connect(lambda: self.on_click_choose('x y z r g b sem ins'))
+        layout.addWidget(btn3)
+        self.sub_window.setLayout(layout)
+        self.sub_window.show()
+
+    def on_click_choose(self, format):
+        self.sub_window.close()
         file_dialog = QFileDialog()
         filepath, _ = file_dialog.getOpenFileName(None, '选择文件', self.workdir, "点云文件 (*.npy)")
         _, extension = os.path.splitext(filepath)
         if extension in ['.npy']:
-            worker = Worker(self.viewer.load_data, filepath)
+            worker = Worker(self.viewer.load_data, filepath, format)
             worker.signals.result.connect(self.update_data_model)
             self.workdir = os.path.dirname(filepath)
             self.threadpool.start(worker)

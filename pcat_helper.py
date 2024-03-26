@@ -22,7 +22,7 @@ class AnnotateViewerHelpler:
 
     def init_default_params(self):
         self.set_point_size_range([0.0001, 0.001, 0.005, 0.01, 0.02])
-        self.setup(np.zeros(0), np.zeros(0))
+        self.setup(np.zeros(0), np.zeros(0), None, None)
 
     @property
     def cur_labels_stack(self):
@@ -50,13 +50,13 @@ class AnnotateViewerHelpler:
 
     # init data
 
-    def setup(self, points, colors):
+    def setup(self, points, colors, sem_labels, ins_labels):
         # data
         self.points = points
         self.colors = colors
         # label
-        self.sem_labels_stack = [np.zeros(points.shape[0]).astype(np.int16)]
-        self.ins_labels_stack = [np.zeros(points.shape[0]).astype(np.int16)]
+        self.sem_labels_stack = [np.zeros(points.shape[0]).astype(np.int16)] if not sem_labels else [sem_labels]
+        self.ins_labels_stack = [np.zeros(points.shape[0]).astype(np.int16)] if not ins_labels else [ins_labels]
         self._anno_mode = 'sem'
         # focus
         self.focus_stack = [np.arange(points.shape[0])]
@@ -98,9 +98,9 @@ class AnnotateViewerHelpler:
 
     # io
 
-    def load_data(self, filepath):
-        points, colors = file_utils.load_data(filepath)
-        self.setup(points, colors)
+    def load_data(self, filepath, format):
+        points, colors, sem_labels, ins_labels = file_utils.load_data(filepath, format)
+        self.setup(points, colors, sem_labels, ins_labels)
         self.viewer.clear()
         self.viewer.reset()
         self.viewer.load(points, colors, self.cur_labels_stack[-1], color_map=self.cur_color_map, scale=self.cur_scale)

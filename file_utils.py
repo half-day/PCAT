@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def load_data(filepath: str):
+def load_data(filepath: str, format: str):
     """Load point cloud data in binary format.
 
         Args:
@@ -16,7 +16,14 @@ def load_data(filepath: str):
     points_cloud = np.load(filepath)
     points = points_cloud[:,:3]
     colors = points_cloud[:,3:6]
-    return points, colors
+    sem_labels = None
+    ins_labels = None
+    if format == 'x y z r g b sem':
+        sem_labels = points_cloud[:,6]
+    elif format == 'x y z r g b sem ins':
+        sem_labels = points_cloud[:,6]
+        ins_labels = points_cloud[:,7]
+    return points, colors, sem_labels, ins_labels
 
 
 def load_label(filepath: str):
