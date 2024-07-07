@@ -25,8 +25,10 @@ def load_label(filepath: str):
         print('Error: label file should contain two arrays')
     labels[0, labels[0] == -1] = 0
     unique_labels = np.unique(labels[1])
+    _temp = np.zeros_like(labels[1])
     for i, x in enumerate(unique_labels):
-        labels[1, labels[1] == x] = i
+        _temp[labels[1] == x] = i
+    labels[1] = _temp
     return labels
 
 
